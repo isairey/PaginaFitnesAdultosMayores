@@ -66,11 +66,11 @@ El sitio está diseñado para ser **ligero, fácil de usar y accesible**, permit
 ## 🧪 Uso
 # Clonar repositorio
 ```
-git clone https://github.com/tu-usuario/fitness-senior.git
+git clone https://github.com/isairey/PaginaFitnesAdultosMayores.git
 ```
 # Entrar al proyecto
 ```
-cd fitness-senior
+cd PaginaFitnesAdultosMayores
 ```
 # Abrir en navegador
 ```
