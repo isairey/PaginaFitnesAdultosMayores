@@ -1,0 +1,393 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+    <title>BIEN-STAR Wizard</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="styles.css"> <style>
+        /* ESTILOS ESPECÍFICOS DEL WIZARD (Pégalos aquí o en tu CSS) */
+        body { overflow: hidden; background-color: var(--crema); }
+        
+        .wizard-container {
+            position: relative;
+            width: 100%;
+            height: 100vh;
+            overflow: hidden;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .wizard-card {
+            position: absolute;
+            width: 90%;
+            max-width: 400px;
+            height: auto;
+            max-height: 85vh;
+            background: white;
+            border-radius: 20px;
+            padding: 30px 20px;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.1);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            text-align: center;
+            transition: all 0.5s cubic-bezier(0.68, -0.55, 0.27, 1.55);
+            opacity: 0;
+            pointer-events: none;
+            overflow-y: auto; /* Permite scroll si el contenido es muy largo */
+        }
+
+        /* Estados de animación */
+        .wizard-card.active {
+            transform: translateX(0) scale(1);
+            opacity: 1;
+            pointer-events: all;
+            z-index: 10;
+        }
+        .wizard-card.prev {
+            transform: translateX(-150%) scale(0.8);
+            opacity: 0;
+            z-index: 5;
+        }
+        .wizard-card.next {
+            transform: translateX(150%) scale(0.8);
+            opacity: 0;
+            z-index: 5;
+        }
+
+        /* Elementos internos */
+        .card-icon {
+            font-size: 3rem;
+            color: var(--verde-claro);
+            margin-bottom: 15px;
+        }
+        
+        .card-title {
+            color: var(--verde-bandera);
+            font-size: 1.5rem;
+            margin-bottom: 20px;
+            font-weight: bold;
+        }
+
+        /* Botones de navegación */
+        .nav-buttons {
+            display: flex;
+            gap: 10px;
+            width: 100%;
+            margin-top: 20px;
+        }
+        
+        .btn-prev { background: #ddd; color: #555; }
+        .btn-next { background: var(--verde-bandera); color: white; flex: 1;}
+        .btn-gen { background: var(--verde-claro); color: white; width: 100%; }
+
+        /* Barra de progreso */
+        .progress-bar {
+            position: absolute;
+            top: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            display: flex;
+            gap: 5px;
+            z-index: 20;
+        }
+        .step-dot {
+            width: 8px;
+            height: 8px;
+            background: #ccc;
+            border-radius: 50%;
+            transition: 0.3s;
+        }
+        .step-dot.active { background: var(--verde-bandera); transform: scale(1.5); }
+    </style>
+</head>
+<body>
+
+<div class="wizard-container">
+    
+    <div class="progress-bar">
+        <div class="step-dot active" id="dot-1"></div>
+        <div class="step-dot" id="dot-2"></div>
+        <div class="step-dot" id="dot-3"></div>
+        <div class="step-dot" id="dot-4"></div>
+        <div class="step-dot" id="dot-5"></div>
+        <div class="step-dot" id="dot-6"></div>
+        <div class="step-dot" id="dot-7"></div>
+    </div>
+
+    <div class="wizard-card active" id="card-1">
+        <i class="fas fa-user-circle card-icon"></i>
+        <h2 class="card-title">Datos Personales</h2>
+        
+        <div class="form-group">
+            <label>Nombre</label>
+            <input type="text" id="profileName" placeholder="Tu nombre" autocomplete="off">
+        </div>
+        <div class="form-row" style="display:flex; gap:10px;">
+            <div class="form-group">
+                <label>Edad</label>
+                <input type="number" id="age" placeholder="Años" min="50" max="120">
+            </div>
+            <div class="form-group">
+                <label>Altura (cm)</label>
+                <input type="number" id="height" placeholder="cm" min="100" max="250">
+            </div>
+        </div>
+        <div class="form-group">
+            <label>Peso (kg)</label>
+            <input type="number" id="weight" placeholder="kg" min="30" max="200">
+        </div>
+
+        <div class="nav-buttons">
+            <button class="btn btn-next" onclick="nextCard(1)">Siguiente <i class="fas fa-arrow-right"></i></button>
+        </div>
+    </div>
+
+    <div class="wizard-card next" id="card-2">
+        <i class="fas fa-heartbeat card-icon"></i>
+        <h2 class="card-title">Salud</h2>
+        <p class="small">Selecciona si tienes alguna condición:</p>
+        
+        <div class="checkbox-list" style="text-align: left; width: 100%;">
+            <label class="checkbox-item"><input type="checkbox" name="cond" value="diabetes"> <span>Diabetes</span></label>
+            <label class="checkbox-item"><input type="checkbox" name="cond" value="hipertension"> <span>Hipertensión</span></label>
+            <label class="checkbox-item"><input type="checkbox" name="cond" value="artritis"> <span>Artritis / Dolor</span></label>
+            <label class="checkbox-item"><input type="checkbox" name="cond" value="problemas_corazon"> <span>Cardíacos</span></label>
+            <label class="checkbox-item"><input type="checkbox" name="cond" value="osteoporosis"> <span>Osteoporosis</span></label>
+            <label class="checkbox-item"><input type="checkbox" name="cond" value="ninguna" id="none-cb"> <span>Ninguna</span></label>
+        </div>
+
+        <div class="nav-buttons">
+            <button class="btn btn-prev" onclick="prevCard(2)">Atrás</button>
+            <button class="btn btn-next" onclick="nextCard(2)">Siguiente</button>
+        </div>
+    </div>
+
+    <div class="wizard-card next" id="card-3">
+        <i class="fas fa-wheelchair card-icon"></i>
+        <h2 class="card-title">Nivel de Movilidad</h2>
+        
+        <select id="mobility" style="width: 100%; padding: 15px; margin-bottom: 20px;">
+            <option value="normal">Movilidad normal</option>
+            <option value="buena">Buena movilidad</option>
+            <option value="baja">Movilidad reducida</option>
+            <option value="baston">Uso bastón / andador</option>
+            <option value="silla">Silla de ruedas</option>
+        </select>
+
+        <div class="nav-buttons">
+            <button class="btn btn-prev" onclick="prevCard(3)">Atrás</button>
+            <button class="btn btn-next" onclick="nextCard(3)">Siguiente</button>
+        </div>
+    </div>
+
+    <div class="wizard-card next" id="card-4">
+        <i class="fas fa-running card-icon"></i>
+        <h2 class="card-title">Nivel de Actividad</h2>
+        
+        <select id="activityLevel" style="width: 100%; padding: 15px; margin-bottom: 20px;">
+            <option value="sedentario">Sedentario (Poco)</option>
+            <option value="ligero">Ligero (1-3 días)</option>
+            <option value="moderado">Moderado (3-5 días)</option>
+            <option value="activo">Activo (6-7 días)</option>
+        </select>
+
+        <div class="nav-buttons">
+            <button class="btn btn-prev" onclick="prevCard(4)">Atrás</button>
+            <button class="btn btn-next" onclick="nextCard(4)">Siguiente</button>
+        </div>
+    </div>
+
+    <div class="wizard-card next" id="card-5">
+        <i class="fas fa-bullseye card-icon"></i>
+        <h2 class="card-title">Tu Objetivo</h2>
+        
+        <label style="display:block; text-align:left; margin-bottom:5px;">Objetivo Principal</label>
+        <select id="objective" style="width: 100%; padding: 15px; margin-bottom: 15px;">
+            <option value="movilidad">Mejorar movilidad</option>
+            <option value="fuerza">Ganar fuerza</option>
+            <option value="perder">Controlar peso</option>
+            <option value="dolor">Reducir dolor</option>
+            <option value="equilibrio">Mejorar equilibrio</option>
+            <option value="salud">Salud general</option>
+        </select>
+
+        <label style="display:block; text-align:left; margin-bottom:5px;">Preferencia de Dieta</label>
+        <select id="dietType" style="width: 100%; padding: 15px; margin-bottom: 20px;">
+            <option value="balanceada">Balanceada</option>
+            <option value="baja_sal">Baja en Sal</option>
+            <option value="baja_azucar">Baja en Azúcar</option>
+            <option value="mediterranea">Mediterránea</option>
+            <option value="economica">Económica</option>
+        </select>
+
+        <div class="nav-buttons">
+            <button class="btn btn-prev" onclick="prevCard(5)">Atrás</button>
+            <button class="btn btn-next" onclick="nextCard(5)">Finalizar</button>
+        </div>
+    </div>
+
+    <div class="wizard-card next" id="card-6">
+        <div id="loadingState">
+            <i class="fas fa-magic card-icon fa-spin"></i>
+            <h2 class="card-title">Generando tu Plan...</h2>
+            <p>Analizando tus datos para crear la mejor rutina.</p>
+        </div>
+
+        <div id="resultState" style="display: none;">
+            <i class="fas fa-check-circle card-icon" style="color: var(--verde-bandera);"></i>
+            <h2 class="card-title">¡Plan Listo!</h2>
+            
+            <div class="stats-mini" style="background:#f0f2f5; padding:10px; border-radius:10px; margin-bottom:20px;">
+                <p><strong>IMC:</strong> <span id="imcValueDisplay">-</span></p>
+                <p><strong>Calorías:</strong> <span id="calValueDisplay">-</span></p>
+            </div>
+
+            <button class="btn btn-primary" onclick="downloadPDFAction()" style="margin-bottom: 10px;">
+                <i class="fas fa-file-pdf"></i> Descargar PDF
+            </button>
+            
+            <button class="btn btn-secondary" onclick="showConsejos()" style="width:100%;">
+                <i class="fas fa-lightbulb"></i> Ver Consejos
+            </button>
+        </div>
+    </div>
+
+    <div class="wizard-card next" id="card-7">
+        <i class="fas fa-info-circle card-icon"></i>
+        <h2 class="card-title">Consejos Útiles</h2>
+        
+        <div style="text-align: left; font-size: 0.9rem; margin-bottom: 20px;">
+            <p><i class="fas fa-check" style="color:var(--verde-claro)"></i> Consulta siempre a tu médico.</p>
+            <p><i class="fas fa-check" style="color:var(--verde-claro)"></i> Hidrátate antes y después.</p>
+            <p><i class="fas fa-check" style="color:var(--verde-claro)"></i> Si duele, detente inmediatamente.</p>
+            <p><i class="fas fa-check" style="color:var(--verde-claro)"></i> La constancia es la clave.</p>
+        </div>
+
+        <button class="btn btn-primary" onclick="window.location.reload()">Empezar de nuevo</button>
+    </div>
+
+    <div style="display: none;">
+        <div id="formError"></div>
+        <div id="imcValue"></div>
+        <div id="imcStatus"></div>
+        <div id="calValue"></div>
+        <div id="healthRecommendations"></div>
+        <div id="dietOptions"></div>
+        <div id="routineOptions"></div>
+        <button id="downloadPlanBtn"></button>
+    </div>
+
+</div>
+
+<script src="script.js"></script> <script>
+    // ==========================================
+    // LÓGICA DEL WIZARD (CONTROLADOR)
+    // ==========================================
+    
+    // Función para navegación entre tarjetas
+    function showCard(stepIndex) {
+        document.querySelectorAll('.wizard-card').forEach((card, index) => {
+            const cardStep = index + 1;
+            card.className = 'wizard-card'; // Reset clases
+            
+            if (cardStep === stepIndex) {
+                card.classList.add('active');
+            } else if (cardStep < stepIndex) {
+                card.classList.add('prev');
+            } else {
+                card.classList.add('next');
+            }
+        });
+
+        // Actualizar puntitos
+        document.querySelectorAll('.step-dot').forEach((dot, index) => {
+            if (index + 1 === stepIndex) dot.classList.add('active');
+            else dot.classList.remove('active');
+        });
+    }
+
+    function nextCard(currentStep) {
+        // Validaciones básicas antes de avanzar
+        if (currentStep === 1) {
+            if (!$('profileName').value || !$('age').value || !$('weight').value) {
+                alert("Por favor completa los datos requeridos.");
+                return;
+            }
+        }
+        
+        if (currentStep === 5) {
+            // Si estamos en el paso 5, al dar siguiente vamos al 6 y generamos
+            showCard(6);
+            procesarPlan();
+        } else {
+            showCard(currentStep + 1);
+        }
+    }
+
+    function prevCard(currentStep) {
+        showCard(currentStep - 1);
+    }
+
+    function showConsejos() {
+        showCard(7);
+    }
+
+    // Función que conecta tu script.js original con este nuevo diseño
+    function procesarPlan() {
+        // 1. Llamar a tu función original para calcular todo (está en script.js)
+        // Como tu script usa document.getElementById, funcionará porque los IDs existen en las tarjetas
+        if (typeof generatePlanFromForm === 'function') {
+            generatePlanFromForm(); 
+        }
+
+        // 2. Simular carga
+        setTimeout(() => {
+            document.getElementById('loadingState').style.display = 'none';
+            document.getElementById('resultState').style.display = 'block';
+            
+            // Traer los valores calculados a la vista del wizard
+            document.getElementById('imcValueDisplay').innerText = document.getElementById('imcValue').innerText;
+            document.getElementById('calValueDisplay').innerText = document.getElementById('calValue').innerText;
+
+            // Generar los datos del PDF internamente para que estén listos
+            // Esto usa las variables globales de tu script.js (state.currentPlanData)
+        }, 1500);
+    }
+
+    // Acción del botón descargar
+    function downloadPDFAction() {
+        if (typeof downloadPlan === 'function') {
+            downloadPlan(); // Llama a tu función original
+        } else {
+            alert("Error: No se encontró la función de descarga.");
+        }
+    }
+
+    // Inicialización de checkboxes (lógica de "Ninguna")
+    const noneCb = document.getElementById('none-cb');
+    const checkboxes = document.querySelectorAll('input[name="cond"]');
+    
+    noneCb.addEventListener('change', function() {
+        if(this.checked) {
+            checkboxes.forEach(cb => { if(cb !== this) cb.checked = false; });
+        }
+    });
+
+    checkboxes.forEach(cb => {
+        if(cb !== noneCb) {
+            cb.addEventListener('change', function() {
+                if(this.checked) noneCb.checked = false;
+            });
+        }
+    });
+
+    // Función auxiliar simple tipo jQuery
+    function $(id) { return document.getElementById(id); }
+</script>
+
+</body>
+</html>
